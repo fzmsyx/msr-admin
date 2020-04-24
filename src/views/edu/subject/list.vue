@@ -7,8 +7,8 @@
       :data="subjectList"
       :props="defaultProps"
       :filter-node-method="filterNode"
+      :default-expand-all= "false"
       class="filter-tree"
-      default-expand-all
     />
 
   </div>
