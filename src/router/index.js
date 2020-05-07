@@ -132,6 +132,22 @@ export const constantRouterMap = [
       }
     ]
   },
+  // 用户管理
+  {
+    path: '/shop/user',
+    component: Layout,
+    redirect: '/shop/user/list',
+    name: 'user',
+    meta: { title: '用户管理', icon: 'nested' },
+    children: [
+      {
+        path: 'list',
+        name: 'UserList',
+        component: () => import('@/views/shop/user/list'),
+        meta: { title: '用户管理列表' }
+      }
+    ]
+  },
 
   { path: '*', redirect: '/404', hidden: true }
 ]

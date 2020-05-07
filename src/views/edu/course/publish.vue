@@ -36,13 +36,13 @@ export default {
   methods: {
     previous() {
       console.log('previous')
-      this.$router.push({ path: '/edu/course/chapter/1' })
+      this.$router.push({ path: '/edu/course/chapter/' + this.courseId })
     },
 
     publish() {
       console.log('publish')
       this.$router.push({ path: '/edu/course/list' })
-    }
-  }
+    } }
+
 }
 </script>

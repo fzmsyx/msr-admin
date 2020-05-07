@@ -22,5 +22,24 @@ export default {
       method: 'put',
       data: courseInfo
     })
+  },
+  getCoursePublishInfoById(id) {
+    return request({
+      url: `${api_name}/course-publish-info/${id}`,
+      method: 'get'
+    })
+  },
+  publishCourse(id) {
+    return request({
+      url: `${api_name}/publish-course/${id}`,
+      method: 'put'
+    })
+  },
+  getPageList(page, limit, searchObj) {
+    return request({
+      url: `${api_name}/${page}/${limit}`,
+      method: 'get',
+      params: searchObj
+    })
   }
 }

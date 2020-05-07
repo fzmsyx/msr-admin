@@ -11,14 +11,12 @@
     </el-steps>
 
     <el-form label-width="120px">
-
       <el-form-item label="课程标题">
         <el-input v-model="courseInfo.title" placeholder=" 示例：机器学习项目课：从基础到搭建项目视频课程。专业名称注意大小写"/>
       </el-form-item>
 
       <!-- 所属分类 TODO -->
-      <!-- 所属分类：级联下拉列表 -->
-      <!-- 一级分类 -->
+      <!-- 一级分类     ESline语法 -->
       <el-form-item label="课程类别">
         <el-select
           v-model="courseInfo.subjectParentId"
@@ -42,7 +40,6 @@
       </el-form-item>
 
       <!-- 课程讲师 TODO -->
-      <!-- 课程讲师 -->
       <el-form-item label="课程讲师">
         <el-select
           v-model="courseInfo.teacherId"
@@ -60,13 +57,11 @@
       </el-form-item>
 
       <!-- 课程简介 TODO -->
-      <!-- 课程简介-->
       <el-form-item label="课程简介">
         <tinymce :height="300" v-model="courseInfo.description"/>
       </el-form-item>
 
       <!-- 课程封面 TODO -->
-      <!-- 课程封面-->
       <el-form-item label="课程封面">
         <el-upload
           :show-file-list="false"
@@ -85,18 +80,14 @@
       <el-form-item>
         <el-button :disabled="saveBtnDisabled" type="primary" @click="next">保存并下一步</el-button>
       </el-form-item>
-
-      <el-form-item>
-        <el-button :disabled="saveBtnDisabled" type="primary" @click="next">保存并下一步</el-button>
-      </el-form-item>
     </el-form>
   </div>
 </template>
-<script>
 
+<script>
 import course from '@/api/edu/course'
-import subject from '@/api/edu/subject'
 import teacher from '@/api/edu/teacher'
+import subject from '@/api/edu/subject'
 import Tinymce from '@/components/Tinymce'
 
 const defaultForm = {
@@ -107,20 +98,21 @@ const defaultForm = {
   description: '',
   price: 0,
   cover: process.env.OSS_PATH + '/cover/default.jpg'
-
 }
+
 export default {
   components: { Tinymce },
   data() {
     return {
       BASE_API: process.env.BASE_API, // 接口API地址
-      teacherList: [], // 讲师列表
       subjectNestedList: [], // 一级分类列表
       subSubjectList: [], // 二级分类列表
+      teacherList: [], // 讲师列表
       courseInfo: defaultForm,
       saveBtnDisabled: false // 保存按钮是否禁用
     }
   },
+
   watch: {
     $route(to, from) {
       console.log('watch $route')
@@ -134,6 +126,83 @@ export default {
   },
 
   methods: {
+    handleAvatarSuccess(res, file) {
+      console.log(res)// 上传响应
+      console.log(URL.createObjectURL(file.raw))// base64编码
+      this.courseInfo.cover = res.data.url
+    },
+
+    beforeAvatarUpload(file) {
+      const isJPG = file.type === 'image/jpeg'
+      const isLt2M = file.size / 1024 / 1024 < 2
+
+      if (!isJPG) {
+        this.$message.error('上传头像图片只能是 JPG 格式!')
+      }
+      if (!isLt2M) {
+        this.$message.error('上传头像图片大小不能超过 2MB!')
+      }
+      return isJPG && isLt2M
+    },
+    subjectLevelOneChanged(value) {
+      console.log(value)
+      for (let i = 0; i < this.subjectNestedList.length; i++) {
+        if (this.subjectNestedList[i].id === value) {
+          this.subSubjectList = this.subjectNestedList[i].children
+          this.courseInfo.subjectId = ''
+        }
+      }
+    },
+
+    init() {
+      if (this.$route.params && this.$route.params.id) {
+        const id = this.$route.params.id // 1254925257194610689
+        console.log(id)
+        // 根据id获取课程基本信息
+        this.fetchCourseInfoById(id)
+      } else {
+        this.courseInfo = { ...defaultForm }
+        // 初始化分类列表
+        this.initSubjectList()
+      }
+
+      // 加载所有的老师集合数据
+      // 获取讲师列表
+      this.initTeacherList()
+    },
+    fetchCourseInfoById(id) {
+    // 获取表单回填数据                               //1 java       2  后端开发
+      course.getCourseInfoById(id).then(response => { // subject_id  subject_parent_id
+        this.courseInfo = response.data.item
+
+        // 初始化分类列表
+        // this.initSubjectList()
+        subject.getNestedTreeList().then(response => {
+          this.subjectNestedList = response.data.list
+
+          // 填充二级菜单：遍历一级菜单列表，
+          for (let i = 0; i < this.subjectNestedList.length; i++) {
+            // 找到和courseInfo.subjectParentId一致的父类别记录
+            if (this.subjectNestedList[i].id === this.courseInfo.subjectParentId) {
+              // 拿到当前类别下的子类别列表，将子类别列表填入二级下拉菜单列表
+              this.subSubjectList = this.subjectNestedList[i].children
+            }
+          }
+        })
+      })
+    },
+    initSubjectList() {
+      subject.getNestedTreeList().then(response => {
+        this.subjectNestedList = response.data.list
+      })
+    },
+
+    // 读取所有的老师
+    initTeacherList() {
+      teacher.getList().then(response => {
+        this.teacherList = response.data.item
+      })
+    },
 
     next() {
       console.log('next')
@@ -143,25 +212,6 @@ export default {
       } else {
         this.updateData()
       }
-    },
-    init() {
-      if (
-        this.$route.params && this.$route.params.id) {
-        const id = this.$route.params.id
-        // 根据id获取课程基本信息
-        this.fetchCourseInfoById(id)
-        console.log(id)
-      } else {
-        this.courseInfo = { ...defaultForm }
-        // 初始化分类列表
-        this.initSubjectList()
-        // 获取讲师列表
-        this.initTeacherList()
-      }
-      // 初始化分类列表
-      this.initSubjectList()
-      // 获取讲师列表
-      this.initTeacherList()
     },
 
     // 保存
@@ -181,86 +231,16 @@ export default {
         })
       })
     },
-    // 初始化课程列表
-    initSubjectList() {
-      subject.getNestedTreeList().then(response => {
-        this.subjectNestedList = response.data.list
-      })
-    },
-    // 获取二级菜单数据
-    subjectLevelOneChanged(value) {
-      console.log(value)
-      for (let i = 0; i < this.subjectNestedList.length; i++) {
-        if (this.subjectNestedList[i].id === value) {
-          this.subSubjectList = this.subjectNestedList[i].children
-          this.courseInfo.subjectId = ''
-        }
-      }
-    },
-    // 初始化讲师下拉列表
-    initTeacherList() {
-      teacher.getList().then(response => {
-        this.teacherList = response.data.item
-      })
-    },
-    handleAvatarSuccess(res, file) {
-      console.log(res)// 上传响应
-      console.log(URL.createObjectURL(file.raw))// base64编码
-      this.courseInfo.cover = res.data.url
-    },
 
-    beforeAvatarUpload(file) {
-      const isJPG = file.type === 'image/jpeg'
-      const isLt2M = file.size / 1024 / 1024 < 2
-
-      if (!isJPG) {
-        this.$message.error('上传头像图片只能是 JPG 格式!')
-      }
-      if (!isLt2M) {
-        this.$message.error('上传头像图片大小不能超过 2MB!')
-      }
-      return isJPG && isLt2M
-    },
-    // 根据id查询课程
-    fetchCourseInfoById(id) {
-      course.getCourseInfoById(id).then(responseCourse => {
-        this.courseInfo = responseCourse.data.item
-        // 初始化分类列表
-        subject.getNestedTreeList().then(responseSubject => {
-          this.subjectNestedList = responseSubject.data.item
-          for (let i = 0; i < this.subjectNestedList.length; i++) {
-            if (this.subjectNestedList[i].id === this.courseInfo.subjectParentId) {
-              this.subSubjectList = this.subjectNestedList[i].children
-            }
-          }
-        })
-
-        // 获取讲师列表
-        this.initTeacherList()
-      }).catch((response) => {
-        this.$message({
-          type: 'error',
-          message: response.message
-        })
-      })
-    },
     updateData() {
-      this.$router.push({ path: '/edu/course/chapter/1' })
       this.saveBtnDisabled = true
       course.updateCourseInfoById(this.courseInfo).then(response => {
         this.$message({
           type: 'success',
           message: '修改成功!'
         })
-        return response// 将响应结果传递给then
-      }).then(response => {
-        this.$router.push({ path: '/edu/course/chapter/' + response.data.courseId })
-      }).catch((response) => {
-        // console.log(response)
-        this.$message({
-          type: 'error',
-          message: '保存失败'
-        })
+      }).then(() => {
+        this.$router.push({ path: '/edu/course/chapter/' + this.courseInfo.id })
       })
     }
   }
